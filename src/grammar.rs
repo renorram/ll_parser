@@ -1,8 +1,8 @@
-use std::fmt;
 use super::production::Production;
+use std::fmt;
 
 pub enum GrammarError {
-    InvalidVariable
+    InvalidVariable,
 }
 
 #[derive(Debug, Eq, PartialEq, Clone)]

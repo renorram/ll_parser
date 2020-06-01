@@ -1,11 +1,15 @@
 use super::grammar::Grammar;
 use super::production::Production;
-use crate::token::{TokenProcessor, Token};
+use crate::token::{Token, TokenProcessor};
 use std::collections::HashSet;
 
-
 impl Production {
-    fn process_variable(variable: char, grammar: &Grammar, firsts: &mut HashSet<Token>, production: &Production) -> bool {
+    fn process_variable(
+        variable: char,
+        grammar: &Grammar,
+        firsts: &mut HashSet<Token>,
+        production: &Production,
+    ) -> bool {
         if let Some(p) = grammar.get_production_by_var(variable) {
             let variable_firsts = Self::fetch_firsts(p, grammar);
             // only continue processing derivation if the variable firsts contains an epsilon
@@ -14,8 +18,10 @@ impl Production {
             for token in variable_firsts {
                 match token {
                     // rule 3.a
-                    Token::Epsilon => production.ends_with_variable(variable) && firsts.insert(token),
-                    _ => firsts.insert(token)
+                    Token::Epsilon => {
+                        production.ends_with_variable(variable) && firsts.insert(token)
+                    }
+                    _ => firsts.insert(token),
                 };
             }
 
@@ -32,7 +38,9 @@ impl Production {
         for slice in processor.process_derivation(&production.derivation) {
             for token in slice.tokens {
                 let should_continue = match token {
-                    Token::Variable(ch) => Self::process_variable(ch, grammar, &mut firsts, &production),
+                    Token::Variable(ch) => {
+                        Self::process_variable(ch, grammar, &mut firsts, &production)
+                    }
                     _ => {
                         firsts.insert(token);
                         false
@@ -67,9 +75,15 @@ mod test {
     use std::collections::HashSet;
 
     fn hash_from_vec(vec: Vec<&str>) -> HashSet<Token> {
-        vec.iter().map(|v| {
-            if v.eq(&EPSILON) { Token::Epsilon } else { Token::Terminal(v.to_string()) }
-        }).collect()
+        vec.iter()
+            .map(|&v| {
+                if v.eq(EPSILON) {
+                    Token::Epsilon
+                } else {
+                    Token::Terminal(v.to_string())
+                }
+            })
+            .collect()
     }
 
     #[test]
@@ -120,7 +134,6 @@ mod test {
         let set_a: HashSet<_> = hash_from_vec(vec!["a", EPSILON]);
         let set_b: HashSet<_> = hash_from_vec(vec!["b", "c"]);
 
-
         assert_eq!(s.firsts, set_s, "Testing variable S");
         assert_eq!(a.firsts, set_a, "Testing variable A");
         assert_eq!(b.firsts, set_b, "Testing variable B");
@@ -148,7 +161,6 @@ mod test {
         let set_a: HashSet<_> = hash_from_vec(vec!["a", EPSILON]);
         let set_b: HashSet<_> = hash_from_vec(vec!["b", "c", EPSILON]);
 
-
         assert_eq!(s.firsts, set_s, "Testing variable S");
         assert_eq!(a.firsts, set_a, "Testing variable A");
         assert_eq!(b.firsts, set_b, "Testing variable B");
@@ -158,7 +170,13 @@ mod test {
     fn test_first_complex_grammar() {
         let mut grammar = Grammar {
             variables: vec!['E', 'Z', 'T', 'Y', 'F'],
-            terminals: vec!["+".to_string(), "*".to_string(), "(".to_string(), "id".to_string(), ")".to_string()],
+            terminals: vec![
+                "+".to_string(),
+                "*".to_string(),
+                "(".to_string(),
+                "id".to_string(),
+                ")".to_string(),
+            ],
             productions: vec![],
             initial_symbol: 'S',
         };

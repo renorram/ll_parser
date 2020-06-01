@@ -1,6 +1,6 @@
-use std::fmt;
 use crate::token::{Token, EPSILON};
 use std::collections::HashSet;
+use std::fmt;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Production {
@@ -36,7 +36,7 @@ impl Production {
             Token::Variable(ch) => self.derivation.ends_with(&ch.to_string()),
             Token::Terminal(s) => self.derivation.ends_with(s),
             Token::Epsilon => self.derivation.ends_with(&EPSILON),
-            _ => false
+            _ => false,
         }
     }
 

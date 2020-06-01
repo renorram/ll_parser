@@ -1,7 +1,7 @@
 use crate::grammar::Grammar;
 use crate::production::Production;
-use std::collections::HashSet;
 use crate::token::Token;
+use std::collections::HashSet;
 
 impl Production {
     fn fetch_follows(production: &Production, grammar: &Grammar) -> HashSet<Token> {
@@ -31,24 +31,30 @@ impl Grammar {
 mod test {
     use crate::grammar::Grammar;
     use crate::production::Production;
+    use crate::token::{Token, DOLLAR_SIGN, EPSILON};
     use std::collections::HashSet;
-    use crate::token::{Token, EPSILON, DOLLAR_SIGN};
 
     fn hash_from_vec(vec: Vec<&str>) -> HashSet<Token> {
-        vec.iter().map(|v| {
-            match v {
-                &EPSILON => Token::Epsilon,
-                &DOLLAR_SIGN => Token::DollarSign,
-                _ => Token::Terminal(v.to_string())
-            }
-        }).collect()
+        vec.iter()
+            .map(|&v| match v {
+                EPSILON => Token::Epsilon,
+                DOLLAR_SIGN => Token::DollarSign,
+                _ => Token::Terminal(v.to_string()),
+            })
+            .collect()
     }
 
     #[test]
     fn test_follow() {
         let mut grammar = Grammar {
             variables: vec!['E', 'Z', 'T', 'Y', 'F'],
-            terminals: vec!["+".to_string(), "*".to_string(), "(".to_string(), "id".to_string(), ")".to_string()],
+            terminals: vec![
+                "+".to_string(),
+                "*".to_string(),
+                "(".to_string(),
+                "id".to_string(),
+                ")".to_string(),
+            ],
             productions: vec![],
             initial_symbol: 'E',
         };
@@ -66,7 +72,6 @@ mod test {
         let t = grammar.get_production_by_var('T').unwrap();
         let y = grammar.get_production_by_var('Y').unwrap();
         let f = grammar.get_production_by_var('F').unwrap();
-
 
         let set_e = hash_from_vec(vec![DOLLAR_SIGN, ")"]);
         let set_t = hash_from_vec(vec!["+", ")", DOLLAR_SIGN]);

@@ -8,7 +8,7 @@ pub enum Token {
     Variable(char),
     Terminal(String),
     Epsilon,
-    DollarSign
+    DollarSign,
 }
 
 impl ToString for Token {
@@ -39,7 +39,7 @@ impl DerivationTokenSlice {
 
 #[derive(Debug)]
 pub struct TokenProcessor<'a> {
-    grammar: &'a Grammar
+    grammar: &'a Grammar,
 }
 
 impl TokenProcessor<'_> {
@@ -47,7 +47,7 @@ impl TokenProcessor<'_> {
         TokenProcessor { grammar }
     }
 
-    pub fn process_derivation(&self, derivation: &String) -> Vec<DerivationTokenSlice> {
+    pub fn process_derivation(&self, derivation: &str) -> Vec<DerivationTokenSlice> {
         derivation
             .split("|")
             .map(|slice| DerivationTokenSlice::new(self.get_token_vec(slice.trim())))
@@ -87,7 +87,7 @@ mod test {
             variables: vec!['S', 'A', 'B'],
             terminals: vec!["a".to_string(), "b".to_string(), "c".to_string()],
             productions: vec![],
-            initial_symbol: 'S'
+            initial_symbol: 'S',
         };
 
         let derivation_slice = String::from("bB");
@@ -110,7 +110,7 @@ mod test {
                 ")".to_string(),
             ],
             productions: vec![],
-            initial_symbol: 'S'
+            initial_symbol: 'S',
         };
 
         let processor = TokenProcessor::new(&grammar);
