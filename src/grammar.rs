@@ -9,19 +9,24 @@ pub enum GrammarError {
 pub struct Grammar {
     pub variables: Vec<char>,
     pub terminals: Vec<String>,
-    pub productions: Vec<Production>
+    pub productions: Vec<Production>,
+    pub initial_symbol: char,
 }
 
 impl Grammar {
-    pub fn new() -> Grammar {
-        Grammar {
-            variables: vec![],
-            terminals: vec![],
-            productions: vec![]
-        }
+    pub fn production_is_initial(&self, production: &Production) -> bool {
+        self.initial_symbol.eq(&production.variable)
     }
 
-    pub fn add_variable(&mut self, variable: char) -> Result<(), GrammarError>{
+    pub fn is_variable(&self, ch: &char) -> bool {
+        self.variables.contains(ch)
+    }
+
+    pub fn is_terminal(&self, value: &String) -> bool {
+        self.terminals.contains(value)
+    }
+
+    pub fn add_variable(&mut self, variable: char) -> Result<(), GrammarError> {
         if !variable.is_uppercase() {
             return Err(GrammarError::InvalidVariable);
         }
@@ -65,21 +70,5 @@ impl fmt::Display for Grammar {
         }
 
         f.write_str(divider)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::Grammar;
-
-    #[test]
-    fn test_grammar() {
-        let grammar = Grammar::new();
-
-        assert_eq!(grammar, Grammar {
-            variables: vec![],
-            terminals: vec![],
-            productions: vec![]
-        });
     }
 }

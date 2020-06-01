@@ -1,40 +1,46 @@
 use super::grammar::Grammar;
-use super::production::{Production, EPSILON};
+use super::production::Production;
+use crate::token::{TokenProcessor, Token};
+use std::collections::HashSet;
+
 
 impl Production {
-    fn fetch_firsts(production: &Production, grammar: &Grammar) -> Vec<String> {
-        let mut firsts: Vec<String> = vec![];
-        let mut buffer = String::new();
+    fn process_variable(variable: char, grammar: &Grammar, firsts: &mut HashSet<Token>, production: &Production) -> bool {
+        if let Some(p) = grammar.get_production_by_var(variable) {
+            let variable_firsts = Self::fetch_firsts(p, grammar);
+            // only continue processing derivation if the variable firsts contains an epsilon
+            let should_continue = variable_firsts.contains(&Token::Epsilon);
 
-        for derivation_slice in production.get_derivation_slices() {
-            // clean buffer before process a slice
-            buffer.clear();
-            for ch in derivation_slice.chars() {
-                if grammar.variables.contains(&ch) {
-                    if let Some(p) = grammar.get_production_by_var(ch) {
-                        let variable_firsts = Self::fetch_firsts(p, grammar);
-                        let should_continue = variable_firsts.contains(&EPSILON.to_string());
+            for token in variable_firsts {
+                match token {
+                    // rule 3.a
+                    Token::Epsilon => production.ends_with_variable(variable) && firsts.insert(token),
+                    _ => firsts.insert(token)
+                };
+            }
 
-                        for v in variable_firsts {
-                            if (v != EPSILON.to_string() && !firsts.contains(&v))
-                                || (v == EPSILON.to_string() && derivation_slice.ends_with(ch))
-                            {
-                                firsts.push(v);
-                            }
-                        }
+            return should_continue;
+        }
 
-                        if !should_continue {
-                            break;
-                        }
+        false
+    }
+
+    fn fetch_firsts(production: &Production, grammar: &Grammar) -> HashSet<Token> {
+        let mut firsts: HashSet<Token> = HashSet::new();
+        let processor = TokenProcessor::new(grammar);
+
+        for slice in processor.process_derivation(&production.derivation) {
+            for token in slice.tokens {
+                let should_continue = match token {
+                    Token::Variable(ch) => Self::process_variable(ch, grammar, &mut firsts, &production),
+                    _ => {
+                        firsts.insert(token);
+                        false
                     }
-                } else {
-                    buffer.push(ch);
+                };
 
-                    if (grammar.terminals.contains(&buffer) || buffer.eq(&EPSILON.to_string())) && !firsts.contains(&buffer) {
-                        firsts.push(buffer.clone());
-                        buffer.clear();
-                        break;
-                    }
+                if !should_continue {
+                    break;
                 }
             }
         }
@@ -56,7 +62,15 @@ impl Grammar {
 #[cfg(test)]
 mod test {
     use crate::grammar::Grammar;
-    use crate::production::{Production, EPSILON};
+    use crate::production::Production;
+    use crate::token::{Token, EPSILON};
+    use std::collections::HashSet;
+
+    fn hash_from_vec(vec: Vec<&str>) -> HashSet<Token> {
+        vec.iter().map(|v| {
+            if v.eq(&EPSILON) { Token::Epsilon } else { Token::Terminal(v.to_string()) }
+        }).collect()
+    }
 
     #[test]
     fn test_firsts_simple() {
@@ -64,20 +78,24 @@ mod test {
             variables: vec!['S', 'A', 'B'],
             terminals: vec!["a".to_string(), "b".to_string(), "c".to_string()],
             productions: vec![],
+            initial_symbol: 'S',
         };
-        
+
         grammar.add_production(Production::new('S', "AB".to_string()).unwrap());
         grammar.add_production(Production::new('A', "aA | a".to_string()).unwrap());
         grammar.add_production(Production::new('B', "bB | c".to_string()).unwrap());
-        
+
         grammar.compute_firsts();
 
         let s = grammar.get_production_by_var('S').unwrap();
         let a = grammar.get_production_by_var('A').unwrap();
         let b = grammar.get_production_by_var('B').unwrap();
-        assert_eq!(s.firsts, vec!["a".to_string()], "Testing variable S");
-        assert_eq!(a.firsts, vec!["a".to_string()], "Testing variable A");
-        assert_eq!(b.firsts, vec!["b".to_string(), "c".to_string()], "Testing variable B");
+        let set_s: HashSet<_> = hash_from_vec(vec!["a"]);
+        let set_b: HashSet<_> = hash_from_vec(vec!["b", "c"]);
+
+        assert_eq!(s.firsts, set_s, "Testing variable S");
+        assert_eq!(a.firsts, set_s, "Testing variable A");
+        assert_eq!(b.firsts, set_b, "Testing variable B");
     }
 
     #[test]
@@ -86,6 +104,7 @@ mod test {
             variables: vec!['S', 'A', 'B'],
             terminals: vec!["a".to_string(), "b".to_string(), "c".to_string()],
             productions: vec![],
+            initial_symbol: 'S',
         };
 
         grammar.add_production(Production::new('S', "AB".to_string()).unwrap());
@@ -97,9 +116,14 @@ mod test {
         let s = grammar.get_production_by_var('S').unwrap();
         let a = grammar.get_production_by_var('A').unwrap();
         let b = grammar.get_production_by_var('B').unwrap();
-        assert_eq!(s.firsts, vec!["a".to_string(), "b".to_string(), "c".to_string()], "Testing variable S");
-        assert_eq!(a.firsts, vec!["a".to_string(), EPSILON.to_string()], "Testing variable A");
-        assert_eq!(b.firsts, vec!["b".to_string(), "c".to_string()], "Testing variable B");
+        let set_s: HashSet<_> = hash_from_vec(vec!["a", "b", "c"]);
+        let set_a: HashSet<_> = hash_from_vec(vec!["a", EPSILON]);
+        let set_b: HashSet<_> = hash_from_vec(vec!["b", "c"]);
+
+
+        assert_eq!(s.firsts, set_s, "Testing variable S");
+        assert_eq!(a.firsts, set_a, "Testing variable A");
+        assert_eq!(b.firsts, set_b, "Testing variable B");
     }
 
     #[test]
@@ -108,6 +132,7 @@ mod test {
             variables: vec!['S', 'A', 'B'],
             terminals: vec!["a".to_string(), "b".to_string(), "c".to_string()],
             productions: vec![],
+            initial_symbol: 'S',
         };
 
         grammar.add_production(Production::new('S', "AB".to_string()).unwrap());
@@ -119,24 +144,30 @@ mod test {
         let s = grammar.get_production_by_var('S').unwrap();
         let a = grammar.get_production_by_var('A').unwrap();
         let b = grammar.get_production_by_var('B').unwrap();
-        assert_eq!(s.firsts, vec!["a".to_string(), "b".to_string(), "c".to_string(), EPSILON.to_string()], "Testing variable S");
-        assert_eq!(a.firsts, vec!["a".to_string(), EPSILON.to_string()], "Testing variable A");
-        assert_eq!(b.firsts, vec!["b".to_string(), "c".to_string(), EPSILON.to_string()], "Testing variable B");
+        let set_s: HashSet<_> = hash_from_vec(vec!["a", "b", "c", EPSILON]);
+        let set_a: HashSet<_> = hash_from_vec(vec!["a", EPSILON]);
+        let set_b: HashSet<_> = hash_from_vec(vec!["b", "c", EPSILON]);
+
+
+        assert_eq!(s.firsts, set_s, "Testing variable S");
+        assert_eq!(a.firsts, set_a, "Testing variable A");
+        assert_eq!(b.firsts, set_b, "Testing variable B");
     }
 
     #[test]
     fn test_first_complex_grammar() {
         let mut grammar = Grammar {
-            variables: vec!['E', 'Z', 'T', 'Y', 'X'],
+            variables: vec!['E', 'Z', 'T', 'Y', 'F'],
             terminals: vec!["+".to_string(), "*".to_string(), "(".to_string(), "id".to_string(), ")".to_string()],
             productions: vec![],
+            initial_symbol: 'S',
         };
 
         grammar.add_production(Production::new('E', "TZ".to_string()).unwrap());
         grammar.add_production(Production::new('Z', "+TZ | £".to_string()).unwrap());
-        grammar.add_production(Production::new('T', "XY".to_string()).unwrap());
-        grammar.add_production(Production::new('Y', "*XY | £".to_string()).unwrap());
-        grammar.add_production(Production::new('X', "(E) | id".to_string()).unwrap());
+        grammar.add_production(Production::new('T', "FY".to_string()).unwrap());
+        grammar.add_production(Production::new('Y', "*FY | £".to_string()).unwrap());
+        grammar.add_production(Production::new('F', "(E) | id".to_string()).unwrap());
 
         grammar.compute_firsts();
 
@@ -144,11 +175,16 @@ mod test {
         let z = grammar.get_production_by_var('Z').unwrap();
         let t = grammar.get_production_by_var('T').unwrap();
         let y = grammar.get_production_by_var('Y').unwrap();
-        let x = grammar.get_production_by_var('X').unwrap();
-        assert_eq!(e.firsts, vec!["(".to_string(), "id".to_string()], "Testing variable E");
-        assert_eq!(z.firsts, vec!["+".to_string(), EPSILON.to_string()], "Testing variable Z");
-        assert_eq!(t.firsts, vec!["(".to_string(), "id".to_string()], "Testing variable T");
-        assert_eq!(y.firsts, vec!["*".to_string(), EPSILON.to_string()], "Testing variable Y");
-        assert_eq!(x.firsts, vec!["(".to_string(), "id".to_string()], "Testing variable X");
+        let f = grammar.get_production_by_var('F').unwrap();
+
+        let set_f = hash_from_vec(vec!["(", "id"]);
+        let set_z = hash_from_vec(vec!["+", EPSILON]);
+        let set_y = hash_from_vec(vec!["*", EPSILON]);
+
+        assert_eq!(e.firsts, set_f, "Testing variable E");
+        assert_eq!(z.firsts, set_z, "Testing variable Z");
+        assert_eq!(t.firsts, set_f, "Testing variable T");
+        assert_eq!(y.firsts, set_y, "Testing variable Y");
+        assert_eq!(f.firsts, set_f, "Testing variable F");
     }
 }
