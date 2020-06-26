@@ -227,4 +227,37 @@ mod test {
         assert_eq!(y.follows, set_t, "Testing variable Y");
         assert_eq!(f.follows, set_f, "Testing variable F");
     }
+
+    #[test]
+    fn test_follow2() {
+        let mut grammar = Grammar {
+            variables: vec!['S', 'B', 'C'],
+            terminals: vec![
+                "a".to_string(),
+                "b".to_string(),
+                "c".to_string(),
+                "d".to_string(),
+            ],
+            productions: vec![],
+            initial_symbol: 'S',
+        };
+
+        grammar.add_production(Production::new('S', "Bb | Cd".to_string()).unwrap());
+        grammar.add_production(Production::new('B', "aB | £".to_string()).unwrap());
+        grammar.add_production(Production::new('C', "cC | £".to_string()).unwrap());
+
+        grammar.compute_follows();
+
+        let s = grammar.get_production_by_var('S').unwrap();
+        let b = grammar.get_production_by_var('B').unwrap();
+        let c = grammar.get_production_by_var('C').unwrap();
+
+        let set_s = hash_from_vec(vec![DOLLAR_SIGN]);
+        let set_b = hash_from_vec(vec!["b"]);
+        let set_c = hash_from_vec(vec!["d"]);
+
+        assert_eq!(s.follows, set_s, "Testing variable S");
+        assert_eq!(b.follows, set_b, "Testing variable B");
+        assert_eq!(c.follows, set_c, "Testing variable C");
+    }
 }
