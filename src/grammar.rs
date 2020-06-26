@@ -48,6 +48,10 @@ impl Grammar {
         self.productions.iter().find(|p| p.variable == variable)
     }
 
+    pub fn get_mut_production_by_var(&mut self, variable: char) -> Option<&mut Production> {
+        self.productions.iter_mut().find(|p| p.variable == variable)
+    }
+
     pub fn productions_iter_mut(&mut self) -> std::slice::IterMut<'_, Production> {
         self.productions.iter_mut()
     }

@@ -9,6 +9,7 @@ pub enum Token {
     Terminal(String),
     Epsilon,
     DollarSign,
+    Placeholder(char),
 }
 
 impl ToString for Token {
@@ -22,6 +23,11 @@ impl ToString for Token {
             Token::Terminal(s) => s.to_owned(),
             Token::Epsilon => EPSILON.to_string(),
             Token::DollarSign => DOLLAR_SIGN.to_string(),
+            Token::Placeholder(ch) => {
+                let mut s = String::new();
+                s.push(ch.to_owned());
+                s
+            }
         }
     }
 }

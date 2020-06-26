@@ -1,11 +1,11 @@
-mod grammar;
-mod token;
-mod production;
 mod first;
 mod follow;
+mod grammar;
+mod production;
+mod token;
 
-use production::Production;
 use grammar::Grammar;
+use production::Production;
 // use std::io;
 // use std::str::FromStr;
 
@@ -110,12 +110,17 @@ use grammar::Grammar;
 // }
 
 fn main() {
-
     let mut grammar = Grammar {
         variables: vec!['E', 'Z', 'T', 'Y', 'X'],
-        terminals: vec!["+".to_string(), "*".to_string(), "(".to_string(), "id".to_string(), ")".to_string()],
+        terminals: vec![
+            "+".to_string(),
+            "*".to_string(),
+            "(".to_string(),
+            "id".to_string(),
+            ")".to_string(),
+        ],
         productions: vec![],
-        initial_symbol: 'S'
+        initial_symbol: 'S',
     };
 
     grammar.add_production(Production::new('E', "TZ".to_string()).unwrap());
